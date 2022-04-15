@@ -8,6 +8,7 @@
 
 // External definitions
 #include "constants.h"
+#include <functions.h>
 
 extern const char *hostname;
 extern const char* version;
@@ -44,25 +45,14 @@ String WeatherRepository::createJsonResponse(WeatherModel sensorDataModel)
 {
     DynamicJsonDocument jsonResponse(2048);
 
-    struct tm time;
 
-    if (!getLocalTime(&time))
-    {
-        Serial.println("Could not obtain time info");
-        return "";
-    }
-    char buffer[80];
-
-    strftime(buffer, sizeof(buffer), "%Y/%m/%d %H:%M:%S", &time);
-
-    String currentTime = buffer;
 
     jsonResponse["host"]["name"] = hostname;
     jsonResponse["host"]["version"] = version;
     jsonResponse["host"]["local ip"] = localIp;
     jsonResponse["host"]["wan ip"] = wanIp;
     jsonResponse["host"]["mac"] = macAddress;
-    jsonResponse["host"]["time"] = currentTime;
+    jsonResponse["host"]["time"] = currentTime();
 
     jsonResponse["weather"]["humidity"] = sensorDataModel._humidity;
     jsonResponse["weather"]["soil moisture"] = sensorDataModel._earthMoist;

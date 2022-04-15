@@ -6,6 +6,7 @@
 #include <HTTPClient.h>
 
 #include <weather_repository.h>
+#include <u8g2/u8g2_display.h>
 
 IPAddress localIp;
 IPAddress wanIp;
@@ -26,6 +27,9 @@ void setup()
   // DHT Setup
   dht.begin();
 
+  // Display Setup
+  u8g2.begin();
+
   // Time Setup
   configTime(0, 7200, ntpServer);
 }
@@ -33,13 +37,18 @@ void setup()
 void loop()
 {
   // put your main code here, to run repeatedly:
-  EVERY_N_SECONDS(10)
+  WeatherModel weather;
+  EVERY_N_SECONDS(2)
   {
     WeatherRepository weatherJson;
-    WeatherModel weather;
     weather = weatherJson.createDataModel();
     String json = weatherJson.createJsonResponse(weather);
 
     Serial.println(json);
+  }
+
+  EVERY_N_MILLISECONDS(30)
+  {
+    drawInterface(weather);
   }
 }
