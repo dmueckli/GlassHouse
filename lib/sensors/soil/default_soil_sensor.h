@@ -12,12 +12,13 @@ public:
     int getMoisture(bool);
 };
 
+/// Gets the current soil moisture 
 int MoistureSensor::getMoisture(bool percentage = false)
 {
     float moistureValues = 0.0;
     float detectedValue = 0.0;
 
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 10; i++)
     {
         /* code */
         detectedValue = float(analogRead(SensorPin));

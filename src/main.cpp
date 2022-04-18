@@ -5,7 +5,7 @@
 #include "ota.h"
 #include <HTTPClient.h>
 
-#include <weather_repository.h>
+#include <weather_model.h>
 #include <u8g2/u8g2_display.h>
 
 IPAddress localIp;
@@ -34,21 +34,22 @@ void setup()
   configTime(0, 7200, ntpServer);
 }
 
+WeatherModel weather;
+String json;
+static unsigned long msLastUpdate = millis() + 50000;
+
 void loop()
 {
   // put your main code here, to run repeatedly:
-  WeatherModel weather;
-  EVERY_N_SECONDS(2)
+
+  if (millis() - msLastUpdate > 50000)
   {
-    WeatherRepository weatherJson;
-    weather = weatherJson.createDataModel();
-    String json = weatherJson.createJsonResponse(weather);
+    weather = weather.createDataModel();
+    json = weather.createJsonResponse(weather);
 
     Serial.println(json);
-  }
 
-  EVERY_N_MILLISECONDS(30)
-  {
-    drawInterface(weather);
+    msLastUpdate = millis();
   }
+  drawInterface(weather);
 }

@@ -34,6 +34,7 @@ double fpsCalculate()
     return fps;
 }
 
+/// Returns the current time "2022\04\17 23:11:58"
 String currentTime()
 {
     struct tm time;
