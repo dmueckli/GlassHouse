@@ -151,7 +151,8 @@ public:
 
     String createJsonResponse(WeatherModel weatherModel = createDataModel())
     {
-        DynamicJsonDocument jsonResponse(512);
+        StaticJsonDocument<500> jsonResponse;
+        String outputString = "";
 
         jsonResponse["host"]["id"] = hostId;
         jsonResponse["host"]["name"] = hostname;
@@ -168,7 +169,6 @@ public:
         jsonResponse["weather"]["temperature °F"] = weatherModel.getTemperature(false);
         jsonResponse["weather"]["heat index °F"] = weatherModel.getHeatIndex(false);
 
-        String outputString = "";
         serializeJsonPretty(jsonResponse, outputString);
 
         return outputString;

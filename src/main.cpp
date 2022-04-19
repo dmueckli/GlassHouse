@@ -3,7 +3,7 @@
 #include <FastLED.h>
 
 #include "ota.h"
-#include <HTTPClient.h>
+#include <ArduinoHttpClient.h>
 
 #include <weather_model.h>
 #include <u8g2/u8g2_display.h>
@@ -52,46 +52,30 @@ void loop()
 
   if (millis() - msLastUpdate > 30000)
   {
-    //weather = weather.createDataModel();
+    // weather = weather.createDataModel();
     json = weather.createJsonResponse();
 
     Serial.println(json);
 
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      WiFiClient client;
-      HTTPClient http;
+    WiFiClient wifi;
+    HttpClient client = HttpClient(wifi, serverAddress);
+    String contentType = "application/json";
+    String apiEndpoint = "/glasshouse_api/v1/controller/weatherData.php";
 
-      // Your Domain name with URL path or IP address with path
-      http.begin(client, serverName);
+    Serial.print("Making POST request to ");
+    Serial.print(apiEndpoint);
+    Serial.print(", with content type: ");
+    Serial.println(contentType);
 
-      // Specify content-type header
-      // http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      // Data to send with HTTP POST
-      // String httpRequestData = "api_key=tPmAT5Ab3j7F9&sensor=BME280&value1=24.25&value2=49.54&value3=1005.14";
-      // Send HTTP POST request
+    client.post(apiEndpoint, contentType, json);
 
-      http.addHeader("Content-Type", "application/json");
-      int httpResponseCode = http.POST(json);
+    int statusCode = client.responseStatusCode();
+    String response = client.responseBody();
 
-      // If you need an HTTP request with a content type: application/json, use the following:
-      // http.addHeader("Content-Type", "application/json");
-      // int httpResponseCode = http.POST("{\"api_key\":\"tPmAT5Ab3j7F9\",\"sensor\":\"BME280\",\"value1\":\"24.25\",\"value2\":\"49.54\",\"value3\":\"1005.14\"}");
-
-      // If you need an HTTP request with a content type: text/plain
-      // http.addHeader("Content-Type", "text/plain");
-      // int httpResponseCode = http.POST("Hello, World!");
-
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-
-      // Free resources
-      http.end();
-    }
-    else
-    {
-      Serial.println("WiFi Disconnected");
-    }
+    Serial.print("Status code: ");
+    Serial.println(statusCode);
+    // Serial.print("Response: ");
+    // Serial.println(response);
 
     msLastUpdate = millis();
   }
