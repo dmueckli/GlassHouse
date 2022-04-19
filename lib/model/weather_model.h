@@ -128,24 +128,32 @@ public:
 
     static WeatherModel createDataModel()
     {
+        WeatherModel weatherModel;
         DHT_Air_Sensor airSensor;
         MoistureSensor moistureSensor;
-        WeatherModel sensorData;
 
-        sensorData.setHumidity(airSensor.getHumidity());
-        sensorData.setSoilMoisture(moistureSensor.getMoisture(true));
-        sensorData.setTemperature(airSensor.getTemperature());
-        sensorData.setHeatIndex(airSensor.getHeatIndex());
-        sensorData.setTemperature(airSensor.getTemperature(true), false);
-        sensorData.setHeatIndex(airSensor.getHeatIndex(true), false);
+        float humidity = airSensor.getHumidity();
+        int moisture = moistureSensor.getMoisture();
+        float temperatureC = airSensor.getTemperature();
+        float heatIndexC = airSensor.getHeatIndex();
+        float temperatureF = airSensor.getTemperature(true);
+        float heatIndexF = airSensor.getHeatIndex(true);
 
-        return sensorData;
+        weatherModel.setHumidity(humidity);
+        weatherModel.setSoilMoisture(moisture);
+        weatherModel.setTemperature(temperatureC);
+        weatherModel.setHeatIndex(heatIndexC);
+        weatherModel.setTemperature(temperatureF, false);
+        weatherModel.setHeatIndex(heatIndexF, false);
+
+        return weatherModel;
     }
 
-    String createJsonResponse(WeatherModel sensorDataModel = createDataModel())
+    String createJsonResponse(WeatherModel weatherModel = createDataModel())
     {
         DynamicJsonDocument jsonResponse(512);
 
+        jsonResponse["host"]["id"] = hostId;
         jsonResponse["host"]["name"] = hostname;
         jsonResponse["host"]["version"] = version;
         jsonResponse["host"]["local ip"] = localIp;
@@ -153,12 +161,12 @@ public:
         jsonResponse["host"]["mac"] = macAddress;
         jsonResponse["host"]["time"] = currentTime();
 
-        jsonResponse["weather"]["humidity"] = sensorDataModel.getHumidity();
-        jsonResponse["weather"]["soil moisture"] = sensorDataModel.getSoilMoisture();
-        jsonResponse["weather"]["temperature °C"] = sensorDataModel.getTemperature();
-        jsonResponse["weather"]["heat index °C"] = sensorDataModel.getHeatIndex();
-        jsonResponse["weather"]["temperature °F"] = sensorDataModel.getTemperature(false);
-        jsonResponse["weather"]["heat index °F"] = sensorDataModel.getHeatIndex(false);
+        jsonResponse["weather"]["humidity"] = weatherModel.getHumidity();
+        jsonResponse["weather"]["soil moisture"] = weatherModel.getSoilMoisture();
+        jsonResponse["weather"]["temperature °C"] = weatherModel.getTemperature();
+        jsonResponse["weather"]["heat index °C"] = weatherModel.getHeatIndex();
+        jsonResponse["weather"]["temperature °F"] = weatherModel.getTemperature(false);
+        jsonResponse["weather"]["heat index °F"] = weatherModel.getHeatIndex(false);
 
         String outputString = "";
         serializeJsonPretty(jsonResponse, outputString);
