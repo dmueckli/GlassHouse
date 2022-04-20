@@ -7,12 +7,16 @@
 
 #include <weather_model.h>
 #include <u8g2/u8g2_display.h>
+#include <touch/touch_sensor.h>
 
 IPAddress localIp;
 IPAddress wanIp;
 String macAddress;
 WeatherModel weather;
 String json;
+TouchSensor touchSensor;
+MoistureSensor moistureSensor;
+
 static unsigned long msLastUpdate = millis() + 30000;
 static unsigned long msLastUpdate2 = millis() + 1000;
 
@@ -47,6 +51,22 @@ void loop()
     /* code */
     weather = weather.createDataModel();
 
+    touchSensor.readTouchValue(touchPinAirValue, 3);
+    touchSensor.readTouchValue(touchPinWaterValue, 3);
+
+
+    // Check if one of the touch sensor have been touched and update/calibrate according value if so 
+    if (touchSensor.touched(touchPinAirValue))
+    {
+      /* code */
+      moistureSensor.setAirValue();
+    }
+    else if (touchSensor.touched(touchPinWaterValue))
+    {
+      /* code */
+      moistureSensor.setWaterValue();
+    }
+
     msLastUpdate2 = millis();
   }
 
@@ -79,5 +99,6 @@ void loop()
 
     msLastUpdate = millis();
   }
+
   drawInterface(weather);
 }
