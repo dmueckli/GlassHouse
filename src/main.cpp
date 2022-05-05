@@ -23,8 +23,12 @@ static unsigned long msLastUpdate2 = millis() + 1000;
 void setup()
 {
   // put your setup code here, to run once:
-  Serial.begin(9600);
-  Serial.println(F("Booting..."));
+  Serial.begin(115200);
+  Serial.println(F("Booting"));
+  {
+    delay(500);
+    Serial.print(".");
+  }
 
   // OTA Setup
   setupOTA();
@@ -45,6 +49,7 @@ void setup()
 void loop()
 {
   // put your main code here, to run repeatedly:
+  int statusCode;
 
   if (millis() - msLastUpdate2 > 1000)
   {
@@ -54,8 +59,7 @@ void loop()
     touchSensor.readTouchValue(touchPinAirValue, 3);
     touchSensor.readTouchValue(touchPinWaterValue, 3);
 
-
-    // Check if one of the touch sensor have been touched and update/calibrate according value if so 
+    // Check if one of the touch sensor have been touched and update/calibrate according value if so
     if (touchSensor.touched(touchPinAirValue))
     {
       /* code */
@@ -73,6 +77,8 @@ void loop()
   if (millis() - msLastUpdate > 30000)
   {
     // weather = weather.createDataModel();
+
+    Serial.println("Creating JSON message:");
     json = weather.createJsonResponse();
 
     Serial.println(json);
@@ -89,16 +95,27 @@ void loop()
 
     client.post(apiEndpoint, contentType, json);
 
-    int statusCode = client.responseStatusCode();
-    String response = client.responseBody();
+    statusCode = client.responseStatusCode();
 
-    Serial.print("Status code: ");
-    Serial.println(statusCode);
-    // Serial.print("Response: ");
-    // Serial.println(response);
+    if (statusCode < 0)
+    {
+      /* code */
+      Serial.print("Failed to make POST request to ");
+      Serial.print(serverAddress);
+      Serial.println(apiEndpoint);
+      Serial.print("Status code: ");
+      Serial.println(statusCode);
+    }
+    else
+    {
+      /* code */
+      String response = client.responseBody();
+      Serial.print("Response: ");
+      Serial.println(response);
+    }
 
     msLastUpdate = millis();
   }
 
-  drawInterface(weather);
+  drawInterface(weather, statusCode);
 }

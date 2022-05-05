@@ -5,7 +5,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
 int g_lineHeight = 0;
 
-void drawInterface(WeatherModel data)
+void drawInterface(WeatherModel data, int httpStatusCode)
 {
 
     /* code */
@@ -28,6 +28,9 @@ void drawInterface(WeatherModel data)
 
     u8g2.setCursor(0, g_lineHeight * 4);
     u8g2.printf("Heat index: %.1lf C", data.getHeatIndex());
+
+    u8g2.setCursor(0, g_lineHeight * 5);
+    u8g2.printf("Status Code: %i", httpStatusCode);
 
     u8g2.setCursor(0, g_lineHeight * 6);
     u8g2.print(currentTime());
