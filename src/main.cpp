@@ -1,121 +1,58 @@
 #include <Arduino.h>
+#include <Preferences.h>
+
+Preferences preferences;
+
 #define FASTLED_INTERNAL
 #include <FastLED.h>
 
-#include "ota.h"
-#include <ArduinoHttpClient.h>
+#include "OtaRepository.h"
 
-#include <weather_model.h>
-#include <u8g2/u8g2_display.h>
-#include <touch/touch_sensor.h>
+#include "ApiRepository.h"
 
-IPAddress localIp;
-IPAddress wanIp;
-String macAddress;
-WeatherModel weather;
-String json;
-TouchSensor touchSensor;
-MoistureSensor moistureSensor;
+ApiRepository api;
+Session session;
 
-static unsigned long msLastUpdate = millis() + 30000;
-static unsigned long msLastUpdate2 = millis() + 1000;
+bool loggedIn = false;
+
+static unsigned long delayTime = 5000;
+static unsigned long msLastUpdate = millis() + delayTime;
 
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println(F("Booting"));
-  {
-    delay(500);
-    Serial.print(".");
-  }
+  Serial.println(F("Booting..."));
+
+  // Preferences
+  preferences.begin("Glasshouse", false);
 
   // OTA Setup
   setupOTA();
-  localIp = WiFi.localIP();
-  wanIp = WiFi.gatewayIP();
-  macAddress = WiFi.macAddress();
 
-  // DHT Setup
-  dht.begin();
-
-  // Display Setup
-  u8g2.begin();
-
-  // Time Setup
-  configTime(0, 7200, ntpServer);
+  // API Login
+  // api.logIn();
+  api.begin();
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
-  int statusCode;
+  // OTA Handler
+  ArduinoOTA.handle();
 
-  if (millis() - msLastUpdate2 > 1000)
+  if (millis() - msLastUpdate > delayTime)
   {
-    /* code */
-    weather = weather.createDataModel();
 
-    touchSensor.readTouchValue(touchPinAirValue, 3);
-    touchSensor.readTouchValue(touchPinWaterValue, 3);
 
-    // Check if one of the touch sensor have been touched and update/calibrate according value if so
-    if (touchSensor.touched(touchPinAirValue))
+    ArduinoOTA.handle();
+
+    if (loggedIn == false)
     {
       /* code */
-      moistureSensor.setAirValue();
-    }
-    else if (touchSensor.touched(touchPinWaterValue))
-    {
-      /* code */
-      moistureSensor.setWaterValue();
-    }
 
-    msLastUpdate2 = millis();
-  }
-
-  if (millis() - msLastUpdate > 30000)
-  {
-    // weather = weather.createDataModel();
-
-    Serial.println("Creating JSON message:");
-    json = weather.createJsonResponse();
-
-    Serial.println(json);
-
-    WiFiClient wifi;
-    HttpClient client = HttpClient(wifi, serverAddress);
-    String contentType = "application/json";
-    String apiEndpoint = "/glasshouse_api/v1/controller/weatherData.php";
-
-    Serial.print("Making POST request to ");
-    Serial.print(apiEndpoint);
-    Serial.print(", with content type: ");
-    Serial.println(contentType);
-
-    client.post(apiEndpoint, contentType, json);
-
-    statusCode = client.responseStatusCode();
-
-    if (statusCode < 0)
-    {
-      /* code */
-      Serial.print("Failed to make POST request to ");
-      Serial.print(serverAddress);
-      Serial.println(apiEndpoint);
-      Serial.print("Status code: ");
-      Serial.println(statusCode);
-    }
-    else
-    {
-      /* code */
-      String response = client.responseBody();
-      Serial.print("Response: ");
-      Serial.println(response);
+      loggedIn = true;
     }
 
     msLastUpdate = millis();
   }
-
-  drawInterface(weather, statusCode);
 }

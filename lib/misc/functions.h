@@ -1,11 +1,12 @@
-#include <constants.h>
+#include <Arduino.h>
+#include "time.h"
 
 #pragma once
 double fps = 0;
-double dStart = 0;
-double dEnd = 0;
+static unsigned long dStart = 0;
+static unsigned long dEnd = 0;
 
-double FramePerSecond(double seconds)
+double FramesPerSecond(double seconds)
 {
     static double framesPerSecond;
     framesPerSecond = (framesPerSecond * 0.9) + (1.0 / seconds * 0.1);
@@ -30,7 +31,7 @@ void fpsDInit()
 
 double fpsCalculate()
 {
-    fps = FramePerSecond(dEnd - dStart);
+    fps = FramesPerSecond(dEnd - dStart);
     return fps;
 }
 
