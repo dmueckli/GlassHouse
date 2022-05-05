@@ -14,6 +14,9 @@ unsigned int hostId = 1;
 const char* hostname = "ESP32 Gewächshaus 1"; 
 const char* version= "Glasshouse Mk 1 alpha 1";
 
+const char* username = "muecklichd";
+const char* userpassword = "Hans-Dieter2";
+
 
 const char* serverAddress = "10.0.10.35";
 

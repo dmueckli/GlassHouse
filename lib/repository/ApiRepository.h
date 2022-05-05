@@ -127,8 +127,8 @@ public:
             DynamicJsonDocument doc(200);
             String json;
 
-            doc["username"] = "XXXXXXXXXX";
-            doc["password"] = "XXXXXXXXXX";
+            doc["username"] = username;
+            doc["password"] = userpassword;
 
             serializeJsonPretty(doc, json);
 
