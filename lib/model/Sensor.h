@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "Constants.h"
 
 // DHT SETUP:
 // REQUIRES the following Arduino libraries:
@@ -68,7 +69,7 @@ public:
         return error_number;
     }
 };
-#pragma once
+
 class AirHumiditySensor : Sensor
 {
 private:
@@ -230,7 +231,7 @@ public:
         }
     }
 };
-#pragma once
+
 class MoistureSensor : Sensor
 {
 private:
