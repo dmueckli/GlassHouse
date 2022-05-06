@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <Preferences.h>
+#include "GlassHouseRepository.h"
+
+#define LOGGING
 
 Preferences preferences;
 
@@ -7,10 +10,11 @@ Preferences preferences;
 #include <FastLED.h>
 
 #include "OtaRepository.h"
-
 #include "ApiRepository.h"
 
+Timeinfo timeinfo;
 ApiRepository api;
+GlassHouseRepository glasshouserepository;
 Session session;
 
 bool loggedIn = false;
@@ -30,8 +34,16 @@ void setup()
   // OTA Setup
   setupOTA();
 
-  // API Login
-  // api.logIn();
+  // Config time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+  // Display Setup
+  // u8g2.begin();
+
+  // DHT Setup
+  dht.begin();
+
+  // API begin script
   api.begin();
 }
 
@@ -43,6 +55,32 @@ void loop()
   if (millis() - msLastUpdate > delayTime)
   {
 
+    // Serial.print("Current time epoch:");
+    // Serial.println(timeinfo.getTime());
+
+    // Serial.print("Session ID: ");
+    // Serial.println(session.getId());
+    // Serial.print("Host ID: ");
+    // Serial.println(session.getHostId());
+    // Serial.print("Accesstoken: ");
+    // Serial.println(session.getAccesstoken());
+    // Serial.print("Accesstoken expiry: ");
+    // Serial.println(session.getAccesstokenExpiry());
+    // Serial.print("Refreshtoken: ");
+    // Serial.println(session.getRefreshtoken());
+    // Serial.print("Refreshtoken expiry: ");
+    // Serial.println(session.getRefreshtokenExpiry());
+    // Serial.println(session.getRefreshtoken());
+    // Serial.print("Last login time (epoch): ");
+    // Serial.println(session.getLoginTime());
+
+    glasshouserepository.updateSensorData();
+    api.checkTokenExpiry();
+    if (timeinfo.getTime() != 0)
+    {
+      /* code */
+      api.postSensorData();
+    }
 
     ArduinoOTA.handle();
 
