@@ -54,26 +54,6 @@ void loop()
 
   if (millis() - msLastUpdate > delayTime)
   {
-
-    // Serial.print("Current time epoch:");
-    // Serial.println(timeinfo.getTime());
-
-    // Serial.print("Session ID: ");
-    // Serial.println(session.getId());
-    // Serial.print("Host ID: ");
-    // Serial.println(session.getHostId());
-    // Serial.print("Accesstoken: ");
-    // Serial.println(session.getAccesstoken());
-    // Serial.print("Accesstoken expiry: ");
-    // Serial.println(session.getAccesstokenExpiry());
-    // Serial.print("Refreshtoken: ");
-    // Serial.println(session.getRefreshtoken());
-    // Serial.print("Refreshtoken expiry: ");
-    // Serial.println(session.getRefreshtokenExpiry());
-    // Serial.println(session.getRefreshtoken());
-    // Serial.print("Last login time (epoch): ");
-    // Serial.println(session.getLoginTime());
-
     glasshouserepository.updateSensorData();
     api.checkTokenExpiry();
     if (timeinfo.getTime() != 0)

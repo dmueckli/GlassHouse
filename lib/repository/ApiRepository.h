@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <ArduinoHttpClient.h>
+// #include <ArduinoHttpClient.h>
 #include <Constants.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include "TimeRepository.h"
 
 #pragma once
@@ -110,7 +111,7 @@ public:
         {
             int statusCode;
             WiFiClient wifi;
-            HttpClient client = HttpClient(wifi, serverAddress);
+            HTTPClient client;
             String apiEndpoint = "/glasshouse_api_dev/v1/controller/Sessions.php";
 
             DynamicJsonDocument doc(200);
@@ -126,9 +127,14 @@ public:
             Serial.print("with json data:");
             Serial.println(json);
 
-            client.post(apiEndpoint, contentType, json);
+            String url = serverAddress + apiEndpoint;
 
-            statusCode = client.responseStatusCode();
+            client.begin(url);
+
+            client.addHeader("Authorization", session.getAccesstoken());
+            client.addHeader("Content-Type", "application/json");
+
+            statusCode = client.POST(json);
 
             Serial.print("Status code: ");
             Serial.println(statusCode);
@@ -136,13 +142,15 @@ public:
             // Check if the Session has been created
             if (statusCode != 201)
             {
-                throw ApiRepositoryException(401, "Username or password is incorrect!");
+                client.end();
+                throw ApiRepositoryException(statusCode, "Username or password is incorrect!");
                 return;
             }
 
             // Deserialization of the login response
             DynamicJsonDocument doc2(500);
-            String loginResponse = client.responseBody();
+            String loginResponse = client.getString();
+            client.end();
 
             DeserializationError error = deserializeJson(doc2, loginResponse);
 
@@ -170,7 +178,6 @@ public:
             session.setRefreshtoken(refreshtoken);
             session.setRefreshtokenExpiry(refreshtoken_expires_in);
             session.setLoginTime(timeinfo.getTime());
-
         }
         catch (ApiRepositoryException &are)
         {
@@ -187,7 +194,8 @@ public:
         {
             int statusCode;
             WiFiClient wifi;
-            HttpClient client = HttpClient(wifi, serverAddress);
+            // HttpClient client = HttpClient(wifi, serverAddress);
+            HTTPClient client;
             String apiEndpoint = "/glasshouse_api_dev/v1/controller/Sessions.php?sessionid=";
 
             // create the json body
@@ -209,16 +217,20 @@ public:
             // Serial.print("Accesstoken: ");
             // Serial.println(atoken);
 
-            String url = apiEndpoint + session.getId();
+            String url = serverAddress + apiEndpoint + session.getId();
             // Serial.print("Url: ");
             // Serial.println(url);
 
-            client.beginRequest();
+            // client.beginRequest();
 
-            client.patch(url.c_str(), contentType, json.length(), (const byte *)json.c_str(), atoken.c_str());
-            client.endRequest();
+            client.begin(url);
 
-            statusCode = client.responseStatusCode();
+            client.addHeader("Authorization", session.getAccesstoken());
+            client.addHeader("Content-Type", "application/json");
+
+            statusCode = client.PATCH(json);
+
+            String loginResponse = "";
 
             Serial.print("Status code: ");
             Serial.println(statusCode);
@@ -227,31 +239,115 @@ public:
             // Check if the Session has been created
             if (statusCode != 200)
             {
-                // Deserialization of the login response
-                DynamicJsonDocument doc2(500);
-                String loginResponse = client.responseBody();
-
-                DeserializationError error = deserializeJson(doc2, loginResponse);
-
-                // Test if parsing succeeds.
-                if (error)
+                if (statusCode == -1) // HTTPC_ERROR_CONNECTION_REFUSED
                 {
-                    Serial.print(F("deserializeJson() failed: "));
-                    Serial.println(error.f_str());
-                    throw ApiRepositoryException(1, "deserializeJson() failed");
+                    client.end();
+                    throw ApiRepositoryException(-1, "Could not connect to the server - Connection refused!");
                     return;
                 }
-                String message = doc2["messages"];
+                else if (statusCode == -2) // HTTPC_ERROR_SEND_HEADER_FAILED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-2, "Could not connect to the server - failed sending headers!");
+                    return;
+                }
+                else if (statusCode == -3) // HTTPC_ERROR_SEND_PAYLOAD_FAILED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-3, "Could not connect to the server - failed sending body!");
+                    return;
+                }
+                else if (statusCode == -4) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-4, "Could not connect to the server!");
+                    return;
+                }
+                else if (statusCode == -5) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-5, "Could not connect to the server - connection lost!");
+                    return;
+                }
+                else if (statusCode == -6) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-6, "Could not connect to the server - no stream available!");
+                    return;
+                }
+                else if (statusCode == -7) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-7, "Could not connect to the server - no server available!");
+                    return;
+                }
+                else if (statusCode == -8) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-8, "Could not connect to the server - no server available!");
+                    return;
+                }
+                else if (statusCode == -9) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-9, "Could not connect to the server - wrong encoding!");
+                    return;
+                }
+                else if (statusCode == -10) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-10, "Could not connect to the server - error writing stream!");
+                    return;
+                }
+                else if (statusCode == -11) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-11, "Could not connect to the server - timeout reading from server!");
+                    return;
+                }
+                else
+                {
+                    loginResponse = client.getString();
+                    client.end();
+                    if (loginResponse == "")
+                    {
+                        throw ApiRepositoryException(500, "Body contains no data!");
+                        return;
+                    }
+                    // Deserialization of the login response
+                    DynamicJsonDocument doc2(500);
 
-                Serial.println(message);
-                logIn();
-                throw ApiRepositoryException(401, "Session could not be refreshed - please login again!");
-                return;
+                    DeserializationError error = deserializeJson(doc2, loginResponse);
+
+                    // Test if parsing succeeds.
+                    if (error)
+                    {
+                        Serial.print(F("deserializeJson() failed: "));
+                        Serial.println(error.f_str());
+                        client.end();
+                        throw ApiRepositoryException(1, "deserializeJson() failed");
+                        return;
+                    }
+                    String message = doc2["messages"];
+
+                    Serial.println(message);
+                    logIn();
+                    client.end();
+                    throw ApiRepositoryException(401, "Session could not be refreshed - please login again!");
+                    return;
+                }
             }
 
+            loginResponse = client.getString();
+            client.end();
+            if (loginResponse == "")
+            {
+                throw ApiRepositoryException(500, "Body contains no data!");
+                return;
+            }
             // Deserialization of the login response
             DynamicJsonDocument doc3(500);
-            String loginResponse = client.responseBody();
+            // String loginResponse = client.responseBody();
 
             DeserializationError error = deserializeJson(doc3, loginResponse);
 
@@ -312,7 +408,6 @@ public:
                     Serial.println(session.getRefreshtokenExpiry());
                     Serial.println("Refresh Token expired! Logging in again...");
                     Serial.println();
-
                     logIn();
                 }
                 else if ((timeinfo.getTime() - session.getLoginTime()) > session.getAccesstokenExpiry())
@@ -365,7 +460,7 @@ public:
         {
             int statusCode;
             WiFiClient wifi;
-            HttpClient client = HttpClient(wifi, serverAddress);
+            HTTPClient client;
             String apiEndpoint = "/glasshouse_api_dev/v1/controller/GlassHouse.php";
 
             // create the json body
@@ -389,42 +484,134 @@ public:
             // Serial.print("with json data:");
             // Serial.println(json);
 
+            String url = serverAddress + apiEndpoint;
+
             String atoken = session.getAccesstoken();
 
-            client.beginRequest();
+            client.begin(url);
 
-            client.post(apiEndpoint.c_str(), contentType, json.length(), (const byte *)json.c_str(), atoken.c_str());
-            client.endRequest();
+            client.addHeader("Authorization", session.getAccesstoken());
+            client.addHeader("Content-Type", "application/json");
 
-            statusCode = client.responseStatusCode();
+            statusCode = client.POST(json);
+
+            // client.beginRequest();
+
+            // client.post(apiEndpoint.c_str(), contentType, json.length(), (const byte *)json.c_str(), atoken.c_str());
+            // client.endRequest();
+
+            // statusCode = client.responseStatusCode();
 
             Serial.print("Status code: ");
             Serial.println(statusCode);
             Serial.println();
 
-            String postResponse = client.responseBody();
+            String postResponse;
 
             // Check if the Session has been created
             if (statusCode != 200)
             {
-                // Deserialization of the login response
-                DynamicJsonDocument doc2(200);
-
-                DeserializationError error = deserializeJson(doc2, postResponse);
-
-                // Test if parsing succeeds.
-                if (error)
+                if (statusCode == -1) // HTTPC_ERROR_CONNECTION_REFUSED
                 {
-                    Serial.print(F("deserializeJson() failed: "));
-                    Serial.println(error.f_str());
-                    throw ApiRepositoryException(1, "deserializeJson() failed");
+                    client.end();
+                    throw ApiRepositoryException(-1, "Could not connect to the server - Connection refused!");
                     return;
                 }
-                String message = doc2["messages"];
+                else if (statusCode == -2) // HTTPC_ERROR_SEND_HEADER_FAILED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-2, "Could not connect to the server - failed sending headers!");
+                    return;
+                }
+                else if (statusCode == -3) // HTTPC_ERROR_SEND_PAYLOAD_FAILED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-3, "Could not connect to the server - failed sending body!");
+                    return;
+                }
+                else if (statusCode == -4) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-4, "Could not connect to the server!");
+                    return;
+                }
+                else if (statusCode == -5) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-5, "Could not connect to the server - connection lost!");
+                    return;
+                }
+                else if (statusCode == -6) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-6, "Could not connect to the server - no stream available!");
+                    return;
+                }
+                else if (statusCode == -7) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-7, "Could not connect to the server - no server available!");
+                    return;
+                }
+                else if (statusCode == -8) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-8, "Could not connect to the server - no server available!");
+                    return;
+                }
+                else if (statusCode == -9) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-9, "Could not connect to the server - wrong encoding!");
+                    return;
+                }
+                else if (statusCode == -10) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-10, "Could not connect to the server - error writing stream!");
+                    return;
+                }
+                else if (statusCode == -11) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(-11, "Could not connect to the server - timeout reading from server!");
+                    return;
+                }
+                else
+                {
+                    postResponse = client.getString();
+                    if (postResponse == "")
+                    {
+                        throw ApiRepositoryException(500, "Body contains no data!");
+                        return;
+                    }
 
-                Serial.println(message);
-                logIn();
-                throw ApiRepositoryException(401, "Sensor data could not be inserted to database!");
+                    // Deserialization of the login response
+                    DynamicJsonDocument doc2(200);
+
+                    DeserializationError error = deserializeJson(doc2, postResponse);
+
+                    // Test if parsing succeeds.
+                    if (error)
+                    {
+                        Serial.print(F("deserializeJson() failed: "));
+                        Serial.println(error.f_str());
+                        throw ApiRepositoryException(1, "deserializeJson() failed");
+                        return;
+                    }
+                    String message = doc2["messages"];
+
+                    Serial.println(message);
+                    logIn();
+                    throw ApiRepositoryException(401, "Sensor data could not be inserted to database!");
+                    return;
+                }
+            }
+
+            postResponse = client.getString();
+            if (postResponse == NULL || postResponse == "")
+            {
+                throw ApiRepositoryException(500, "Body contains no data!");
                 return;
             }
 
