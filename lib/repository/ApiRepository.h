@@ -62,9 +62,9 @@ public:
      *  It first checks for stored session data from "preferences.h"
      *  and tries to log in to the api if none session data could be restored.
      *
-     *  TODO: Add method to check if accesstoken has been expired.
-     *  TODO: Add method to check if refreshtoken has been expired.
-     *  TODO: Implement method for refreshing the session
+     *  
+     *  
+     *  
      */
     void begin()
     {
@@ -687,12 +687,19 @@ public:
                 else if (statusCode == 401) // HTTPC_ERROR_NOT_CONNECTED
                 {
                     client.end();
-                    throw ApiRepositoryException(-11, "Could not connect to the server - timeout reading from server!");
+                    throw ApiRepositoryException(401, "Unauthorized!");
+                    return;
+                }
+                else if (statusCode == 404) // HTTPC_ERROR_NOT_CONNECTED
+                {
+                    client.end();
+                    throw ApiRepositoryException(404, "Host not found!");
                     return;
                 }
                 else
                 {
                     postResponse = client.getString();
+                    client.end();
                     if (postResponse == "")
                     {
                         throw ApiRepositoryException(500, "Body contains no data!");
@@ -722,6 +729,7 @@ public:
             }
 
             postResponse = client.getString();
+            client.end();
             if (postResponse == NULL || postResponse == "")
             {
                 throw ApiRepositoryException(500, "Body contains no data!");

@@ -11,16 +11,21 @@ Preferences preferences;
 
 #include "OtaRepository.h"
 #include "ApiRepository.h"
+#include "Icinga2Repository.h"
 
 Timeinfo timeinfo;
 ApiRepository api;
 GlassHouseRepository glasshouserepository;
+Icinga2Repository icinga2;
 Session session;
 
 bool loggedIn = false;
 
 static unsigned long delayTime = 5000;
 static unsigned long msLastUpdate = millis() + delayTime;
+
+static unsigned long delayTime2 = 6000;
+static unsigned long msLastUpdate2 = millis() + delayTime;
 
 void setup()
 {
@@ -51,6 +56,13 @@ void loop()
 {
   // OTA Handler
   ArduinoOTA.handle();
+
+  if (millis() - msLastUpdate2 > delayTime2) {
+    icinga2.sendHostalive();
+    icinga2.sendSensorData();
+
+    msLastUpdate2 = millis();
+  }
 
   if (millis() - msLastUpdate > delayTime)
   {
